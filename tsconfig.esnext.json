@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target":"esnext",
+    "module": "commonjs",
+    "outDir": "./lib-esnext",
+    "esModuleInterop": true,
+    "allowJs": true,
+    "strict": true
+  },
+  "exclude": [
+    "lib",
+    "lib-esnext",
+    "public",
+    "release-api",
+    "release-homebridge",
+    "homebridge-ui"
+  ]
+}

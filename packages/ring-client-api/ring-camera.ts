@@ -15,9 +15,10 @@ import {
   VideoSearchResponse,
   OnvifCameraData,
   RingCameraKind,
+  ActiveDing,
 } from './ring-types'
 import { clientApi, deviceApi, RingRestClient } from './rest-client'
-import { BehaviorSubject, firstValueFrom, Subject } from 'rxjs'
+import { BehaviorSubject, firstValueFrom, interval, Subject } from 'rxjs'
 import {
   distinctUntilChanged,
   filter,
@@ -26,14 +27,21 @@ import {
   publishReplay,
   refCount,
   share,
+  takeUntil,
 } from 'rxjs/operators'
 import { DeepPartial, delay, logDebug, logError } from './util'
 import { Subscribed } from './subscribed'
 import { WebrtcConnection } from './streaming/webrtc-connection'
 import { RingEdgeConnection } from './streaming/ring-edge-connection'
-import { FfmpegOptions, StreamingSession } from './streaming/streaming-session'
+import { StreamingSession } from './streaming/streaming-session'
 import { StreamingConnectionOptions } from './streaming/streaming-connection-base'
 import { SimpleWebRtcSession } from './streaming/simple-webrtc-session'
+import { FfmpegOptions } from './ffmpeg-options'
+import { generateSrtpOptions, getDefaultIpAddress, reservePorts, SrtpOptions } from '@homebridge/camera-utils'
+import dgram from 'dgram';
+import { SipSession } from './sip-session'
+import { once } from 'events';
+import { SipOptions } from './sip-call'
 
 export type AnyCameraData = CameraData | OnvifCameraData
 
@@ -105,6 +113,42 @@ export function getSearchQueryString(
     .join('&')
 
   return queryString.length ? `?${queryString}` : ''
+}
+
+export async function bindUdp(server: dgram.Socket, usePort: number) {
+  server.bind({
+    port: usePort,
+    // exclusive: false,
+    // address: '0.0.0.0',
+  });
+  await once(server, 'listening');
+  server.setRecvBufferSize(1024 * 1024);
+  const port = server.address().port;
+  return {
+      port,
+      url: `udp://'0.0.0.0':${port}`,
+  }
+}
+
+export async function bindZero(server: dgram.Socket) {
+  return bindUdp(server, 0);
+}
+
+export async function createBindZero() {
+  return createBindUdp(0);
+}
+
+export async function createBindUdp(usePort: number) {
+  const server = dgram.createSocket({
+    type: 'udp4',
+    // reuseAddr: true,
+  });
+  const {port, url} = await bindUdp(server, usePort);
+  return {
+      server,
+      port,
+      url,
+  };
 }
 
 export class RingCamera extends Subscribed {
@@ -597,6 +641,114 @@ export class RingCamera extends Subscribed {
     })
   }
 
+  fetchActiveDings() {
+    return this.restClient.request<ActiveDing[]>({
+      url: clientApi('dings/active'),
+    })
+  }
+
+  async startVideoOnDemand(): Promise<ActiveDing | ""> {
+    try {
+      return await this.restClient
+        .request<ActiveDing | ''>({
+          method: 'POST',
+          url: this.doorbotUrl('live_view'), // Ring app uses vod for battery cams, but doesn't appear to be necessary
+        })
+    } catch (e: any) {
+      if (e.response?.statusCode === 403) {
+        const errorMessage = `Camera ${this.name} returned 403 when starting a live stream.  This usually indicates that live streaming is blocked by Modes settings.  Check your Ring app and verify that you are able to stream from this camera with the current Modes settings.`
+        logError(errorMessage)
+        throw new Error(errorMessage)
+      }
+
+      throw e
+    }
+  }
+
+  private expiredDingIds: string[] = []
+
+  async getSipOptions(): Promise<SipOptions> {
+    let activeDing = await this.startVideoOnDemand();
+    if (!(activeDing && 'sip_from' in activeDing)) {
+      // wired cams return a ding from live_view so we don't need to wait
+      let retry = 0;
+      while (true) {
+        const activeDings = await this.fetchActiveDings(),
+        existingDing = activeDings
+          .filter((ding) => !this.expiredDingIds.includes(ding.id_str))
+          .slice()
+          .reverse()[0]
+
+        if (existingDing) {
+          activeDing = existingDing
+          break
+        }
+
+        retry++
+        if (retry === 10)
+          throw new Error('Timed out waiting for sip ding')
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
+    }
+
+    return {
+      to: activeDing.sip_to,
+      from: activeDing.sip_from,
+      dingId: activeDing.id_str,
+      localIp: await getDefaultIpAddress(),
+    }
+  }
+
+  getUpdatedSipOptions(expiredDingId: string) {
+    // Got a 480 from sip session, which means it's no longer active
+    this.expiredDingIds.push(expiredDingId)
+    return this.getSipOptions()
+  }
+
+  async createSipSession(
+    options: {
+      audio?: SrtpOptions
+      video?: SrtpOptions
+    } = {},
+    audioPort = 0,
+    videoPort = 0,
+  ) {
+    const audioSplitter = await createBindUdp(audioPort),
+      audioRtcpSplitter = await createBindUdp(audioSplitter.port + 1),
+      videoSplitter = await createBindUdp(videoPort),
+      videoRtcpSplitter = await createBindUdp(videoSplitter.port + 1),
+      [
+        sipOptions,
+        [tlsPort],
+      ] = await Promise.all([
+        this.getSipOptions(),
+        reservePorts({ type: 'tcp' }),
+      ]),
+      rtpOptions = {
+        audio: {
+          port: audioSplitter.port,
+          rtcpPort: audioRtcpSplitter.port,
+          ...(options.audio || generateSrtpOptions()),
+        },
+        video: {
+          port: videoSplitter.port,
+          rtcpPort: videoRtcpSplitter.port,
+          ...(options.video || generateSrtpOptions()),
+        },
+      }
+
+
+    return new SipSession(
+      sipOptions,
+      rtpOptions,
+      audioSplitter.server,
+      audioRtcpSplitter.server,
+      videoSplitter.server,
+      videoRtcpSplitter.server,
+      tlsPort,
+      this
+    )
+  }
   async recordToFile(outputPath: string, duration = 30) {
     const liveCall = await this.streamVideo({
       output: ['-t', duration.toString(), outputPath],
