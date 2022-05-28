@@ -57,7 +57,7 @@ function parseLiveCallSession(sessionId: string) {
 
 export class WebrtcConnection extends StreamingConnectionBase {
   constructor(
-    private sessionId: string,
+    public sessionId: string,
     camera: RingCamera,
     options: StreamingConnectionOptions
   ) {
