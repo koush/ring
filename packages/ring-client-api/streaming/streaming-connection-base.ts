@@ -105,12 +105,12 @@ export abstract class StreamingConnectionBase extends Subscribed {
     })
   }
 
-  activateCameraSpeaker() {
+  setCameraSpeaker(activate: boolean) {
     // Fire and forget this call so that callers don't get hung up waiting for answer (which might not happen)
     firstValueFrom(this.onCallAnswered)
       .then(() => {
         this.sendSessionMessage('camera_options', {
-          stealth_mode: false,
+          stealth_mode: !activate,
         })
       })
       .catch((e) => {

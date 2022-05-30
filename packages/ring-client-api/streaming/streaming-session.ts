@@ -73,12 +73,12 @@ export class StreamingSession extends Subscribed {
   }
 
   cameraSpeakerActivated = false
-  activateCameraSpeaker() {
-    if (this.cameraSpeakerActivated || this.hasEnded) {
+  setCameraSpeaker(activate: boolean) {
+    if (this.hasEnded) {
       return
     }
-    this.cameraSpeakerActivated = true
-    this.connection.activateCameraSpeaker()
+    this.cameraSpeakerActivated = activate
+    this.connection.setCameraSpeaker(activate)
   }
 
   async reservePort(bufferPorts = 0) {
