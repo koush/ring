@@ -55,7 +55,7 @@
   "author": "dgreif",
   "license": "MIT",
   "dependencies": {
-    "@eneris/push-receiver": "^3.0.1",
+    "@eneris/push-receiver": "../push-receiver",
     "@homebridge/camera-utils": "^2.1.1",
     "@homebridge/plugin-ui-utils": "^0.0.19",
     "@types/socket.io-client": "1.4.36",
