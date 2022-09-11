@@ -50,7 +50,7 @@ export class StreamingSession extends Subscribed {
   }
 
   get sessionId() {
-    return this.connection.sessionId;
+    return this.connection.sessionId
   }
 
   private bindToConnection(connection: RingEdgeConnection | WebrtcConnection) {

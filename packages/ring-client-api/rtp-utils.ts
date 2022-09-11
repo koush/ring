@@ -1,7 +1,7 @@
 import { logDebug, logError } from './util'
 import { SrtpOptions } from '@homebridge/camera-utils'
 import { DingKind } from './ring-types'
-import dgram from 'dgram';
+import dgram from 'dgram'
 const stun = require('stun')
 
 const stunMagicCookie = 0x2112a442 // https://tools.ietf.org/html/rfc5389#section-6
@@ -71,16 +71,14 @@ export function sendStunBindingRequest({
     const encodedMessage = stun.encode(message)
     try {
       rtpSplitter.send(encodedMessage, port, address)
-    }
-    catch (e) {
-      logError(e);
+    } catch (e) {
+      logError(e)
     }
 
     try {
-      rtcpSplitter.send(encodedMessage, rtcpPort, address);
-    }
-    catch (e) {
-      logError(e);
+      rtcpSplitter.send(encodedMessage, rtcpPort, address)
+    } catch (e) {
+      logError(e)
     }
   }
 }
@@ -101,9 +99,8 @@ export function createStunResponder(rtpSplitter: dgram.Socket) {
       response.addXorAddress(info.address, info.port)
       try {
         rtpSplitter.send(stun.encode(response), info.port, info.address)
-      }
-      catch (e) {
-        logError(e);
+      } catch (e) {
+        logError(e)
       }
     } catch (e) {
       logDebug('Failed to Decode STUN Message')

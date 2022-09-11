@@ -17,5 +17,5 @@ export interface BasicPeerConnection {
   onConnectionState: Observable<ConnectionState>
   close(): void
   requestKeyFrame?: () => void
-  sendAudioPacket?: (rtp: RtpPacket|Buffer) => void
+  sendAudioPacket?: (rtp: RtpPacket | Buffer) => void
 }

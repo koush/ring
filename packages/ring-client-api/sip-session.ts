@@ -5,14 +5,12 @@ import {
   RtpOptions,
   sendStunBindingRequest,
 } from './rtp-utils'
-import {
-  reservePorts,
-} from '@homebridge/camera-utils'
+import { reservePorts } from '@homebridge/camera-utils'
 import { expiredDingError, SipCall, SipOptions } from './sip-call'
 import { RingCamera } from './ring-camera'
 import { Subscribed } from './subscribed'
 import { logDebug, logError } from './util'
-import dgram from 'dgram';
+import dgram from 'dgram'
 
 export class SipSession extends Subscribed {
   private hasStarted = false

@@ -48,7 +48,10 @@ export class RingBaseApi extends Subscribed {
   public readonly restClient
   public readonly onRefreshTokenUpdated
 
-  constructor(public readonly options: RingApiOptions & RefreshTokenAuth, public readonly streamingConnectionOptions: StreamingConnectionOptions) {
+  constructor(
+    public readonly options: RingApiOptions & RefreshTokenAuth,
+    public readonly streamingConnectionOptions: StreamingConnectionOptions
+  ) {
     super()
 
     this.restClient = new RingRestClient(this.options)
@@ -219,6 +222,7 @@ export class RingBaseApi extends Subscribed {
     const pushReceiver = new PushReceiver({
         logLevel: 'NONE',
         senderId: '876313859327', // for Ring android app.  703521446232 for ring-site
+        heartbeatIntervalMs: 15 * 60 * 1000,
       }),
       devicesById: { [id: number]: RingCamera | RingIntercom | undefined } = {},
       sendToDevice = (id: number, notification: PushNotification) => {
@@ -419,7 +423,10 @@ export class RingApi extends RingBaseApi {
   constructor(public readonly options: RingApiOptions & RefreshTokenAuth) {
     super(options, {
       // calling as global.require prevents webpack from picking it up.
-      createPeerConnection: () => new (global.require('./streaming/werift-peer-connection').WeriftPeerConnection)(),
+      createPeerConnection: () =>
+        new (global.require(
+          './streaming/werift-peer-connection'
+        ).WeriftPeerConnection)(),
     })
   }
 }
