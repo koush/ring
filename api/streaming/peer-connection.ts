@@ -1,8 +1,6 @@
 /* eslint-disable brace-style */
 import type { Observable, Subject } from 'rxjs'
-import type {
-  ConnectionState, RtpPacket
-} from 'werift'
+import type { ConnectionState, RtpPacket } from 'werift'
 
 export interface BasicPeerConnection {
   onAudioRtp?: Subject<RtpPacket>
@@ -19,5 +17,5 @@ export interface BasicPeerConnection {
   onConnectionState: Observable<ConnectionState>
   close(): void
   requestKeyFrame?: () => void
-  sendAudioPacket?: (rtp: RtpPacket|Buffer) => void
+  sendAudioPacket?: (rtp: RtpPacket | Buffer) => void
 }

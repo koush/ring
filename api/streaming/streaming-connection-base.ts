@@ -108,12 +108,12 @@ export abstract class StreamingConnectionBase extends Subscribed {
     this.ws.send(JSON.stringify(message))
   }
 
-  sendAudioPacket(rtp: RtpPacket|Buffer) {
+  sendAudioPacket(rtp: RtpPacket | Buffer) {
     if (this.hasEnded) {
       return
     }
 
-    this.pc.sendAudioPacket?.(rtp);
+    this.pc.sendAudioPacket?.(rtp)
   }
 
   private hasEnded = false

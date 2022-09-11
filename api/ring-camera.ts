@@ -1,4 +1,25 @@
 import {
+  generateSrtpOptions,
+  getDefaultIpAddress,
+  reservePorts,
+  SrtpOptions,
+} from '@homebridge/camera-utils'
+import dgram from 'dgram'
+import { once } from 'events'
+import { BehaviorSubject, firstValueFrom, Subject } from 'rxjs'
+import {
+  distinctUntilChanged,
+  filter,
+  map,
+  mapTo,
+  publishReplay,
+  refCount,
+  share,
+} from 'rxjs/operators'
+import { FfmpegOptions } from './ffmpeg-options'
+import { clientApi, deviceApi, RingRestClient } from './rest-client'
+import {
+  ActiveDing,
   CameraData,
   CameraDeviceSettingsData,
   CameraEventOptions,
@@ -8,37 +29,20 @@ import {
   HistoryOptions,
   LiveCallResponse,
   PeriodicFootageResponse,
-  PushNotificationAction,
   PushNotification,
+  PushNotificationAction,
   RingCameraModel,
   VideoSearchResponse,
-  ActiveDing,
 } from './ring-types'
-import { clientApi, deviceApi, RingRestClient } from './rest-client'
-import { BehaviorSubject, firstValueFrom, interval, Subject } from 'rxjs'
-import {
-  distinctUntilChanged,
-  filter,
-  map,
-  mapTo,
-  publishReplay,
-  refCount,
-  share,
-  takeUntil,
-} from 'rxjs/operators'
-import { DeepPartial, delay, logDebug, logError } from './util'
-import { Subscribed } from './subscribed'
-import { WebrtcConnection } from './streaming/webrtc-connection'
-import { RingEdgeConnection } from './streaming/ring-edge-connection'
-import { StreamingSession } from './streaming/streaming-session'
-import { StreamingConnectionOptions } from './streaming/streaming-connection-base'
-import { SimpleWebRtcSession } from './streaming/simple-webrtc-session'
-import { FfmpegOptions } from './ffmpeg-options'
-import { generateSrtpOptions, getDefaultIpAddress, reservePorts, SrtpOptions } from '@homebridge/camera-utils'
-import dgram from 'dgram';
-import { SipSession } from './sip-session'
-import { once } from 'events';
 import { SipOptions } from './sip-call'
+import { SipSession } from './sip-session'
+import { RingEdgeConnection } from './streaming/ring-edge-connection'
+import { SimpleWebRtcSession } from './streaming/simple-webrtc-session'
+import { StreamingConnectionOptions } from './streaming/streaming-connection-base'
+import { StreamingSession } from './streaming/streaming-session'
+import { WebrtcConnection } from './streaming/webrtc-connection'
+import { Subscribed } from './subscribed'
+import { DeepPartial, delay, logDebug, logError } from './util'
 
 const maxSnapshotRefreshSeconds = 15,
   fullDayMs = 24 * 60 * 60 * 1000
@@ -115,35 +119,35 @@ export async function bindUdp(server: dgram.Socket, usePort: number) {
     port: usePort,
     // exclusive: false,
     // address: '0.0.0.0',
-  });
-  await once(server, 'listening');
-  server.setRecvBufferSize(1024 * 1024);
-  const port = server.address().port;
+  })
+  await once(server, 'listening')
+  server.setRecvBufferSize(1024 * 1024)
+  const port = server.address().port
   return {
-      port,
-      url: `udp://'0.0.0.0':${port}`,
+    port,
+    url: `udp://'0.0.0.0':${port}`,
   }
 }
 
-export async function bindZero(server: dgram.Socket) {
-  return bindUdp(server, 0);
-}
-
-export async function createBindZero() {
-  return createBindUdp(0);
+export function bindZero(server: dgram.Socket) {
+  return bindUdp(server, 0)
 }
 
 export async function createBindUdp(usePort: number) {
   const server = dgram.createSocket({
-    type: 'udp4',
-    // reuseAddr: true,
-  });
-  const {port, url} = await bindUdp(server, usePort);
+      type: 'udp4',
+      // reuseAddr: true,
+    }),
+    { port, url } = await bindUdp(server, usePort)
   return {
-      server,
-      port,
-      url,
-  };
+    server,
+    port,
+    url,
+  }
+}
+
+export function createBindZero() {
+  return createBindUdp(0)
 }
 
 export class RingCamera extends Subscribed {
@@ -408,7 +412,9 @@ export class RingCamera extends Subscribed {
   }
 
   async startLiveCall(options?: StreamingConnectionOptions) {
-    const connection = await this.createStreamingConnection(options || this.streamingConnectionOptions)
+    const connection = await this.createStreamingConnection(
+      options || this.streamingConnectionOptions
+    )
     return new StreamingSession(this, connection)
   }
 
@@ -623,13 +629,12 @@ export class RingCamera extends Subscribed {
     })
   }
 
-  async startVideoOnDemand(): Promise<ActiveDing | ""> {
+  async startVideoOnDemand(): Promise<ActiveDing | ''> {
     try {
-      return await this.restClient
-        .request<ActiveDing | ''>({
-          method: 'POST',
-          url: this.doorbotUrl('live_view'), // Ring app uses vod for battery cams, but doesn't appear to be necessary
-        })
+      return await this.restClient.request<ActiveDing | ''>({
+        method: 'POST',
+        url: this.doorbotUrl('live_view'), // Ring app uses vod for battery cams, but doesn't appear to be necessary
+      })
     } catch (e: any) {
       if (e.response?.statusCode === 403) {
         const errorMessage = `Camera ${this.name} returned 403 when starting a live stream.  This usually indicates that live streaming is blocked by Modes settings.  Check your Ring app and verify that you are able to stream from this camera with the current Modes settings.`
@@ -644,16 +649,17 @@ export class RingCamera extends Subscribed {
   private expiredDingIds: string[] = []
 
   async getSipOptions(): Promise<SipOptions> {
-    let activeDing = await this.startVideoOnDemand();
+    let activeDing = await this.startVideoOnDemand()
     if (!(activeDing && 'sip_from' in activeDing)) {
       // wired cams return a ding from live_view so we don't need to wait
-      let retry = 0;
+      let retry = 0
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         const activeDings = await this.fetchActiveDings(),
-        existingDing = activeDings
-          .filter((ding) => !this.expiredDingIds.includes(ding.id_str))
-          .slice()
-          .reverse()[0]
+          existingDing = activeDings
+            .filter((ding) => !this.expiredDingIds.includes(ding.id_str))
+            .slice()
+            .reverse()[0]
 
         if (existingDing) {
           activeDing = existingDing
@@ -661,9 +667,10 @@ export class RingCamera extends Subscribed {
         }
 
         retry++
-        if (retry === 10)
+        if (retry === 10) {
           throw new Error('Timed out waiting for sip ding')
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000))
       }
     }
 
@@ -687,16 +694,13 @@ export class RingCamera extends Subscribed {
       video?: SrtpOptions
     } = {},
     audioPort = 0,
-    videoPort = 0,
+    videoPort = 0
   ) {
     const audioSplitter = await createBindUdp(audioPort),
       audioRtcpSplitter = await createBindUdp(audioSplitter.port + 1),
       videoSplitter = await createBindUdp(videoPort),
       videoRtcpSplitter = await createBindUdp(videoSplitter.port + 1),
-      [
-        sipOptions,
-        [tlsPort],
-      ] = await Promise.all([
+      [sipOptions, [tlsPort]] = await Promise.all([
         this.getSipOptions(),
         reservePorts({ type: 'tcp' }),
       ]),
@@ -712,7 +716,6 @@ export class RingCamera extends Subscribed {
           ...(options.video || generateSrtpOptions()),
         },
       }
-
 
     return new SipSession(
       sipOptions,

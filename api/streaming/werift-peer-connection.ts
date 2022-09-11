@@ -1,6 +1,12 @@
 /* eslint-disable brace-style */
 import {
-  ConnectionState, RtpPacket, RtcpPacket, RTCRtpCodecParameters, RTCPeerConnection, MediaStreamTrack, RTCIceCandidate
+  ConnectionState,
+  RtpPacket,
+  RtcpPacket,
+  RTCRtpCodecParameters,
+  RTCPeerConnection,
+  MediaStreamTrack,
+  RTCIceCandidate,
 } from 'werift'
 import { interval, merge, Observable, ReplaySubject, Subject } from 'rxjs'
 import { logDebug, logError, logInfo } from '../util'
@@ -27,14 +33,12 @@ export interface BasicPeerConnection {
     sdp: string
   }): Promise<RTCSessionDescriptionInit>
   acceptAnswer(answer: { type: 'answer'; sdp: string }): Promise<void>
-  addIceCandidate(candidate: RTCIceCandidateInit): Promise<void>
+  addIceCandidate(candidate: Partial<RTCIceCandidate>): Promise<void>
   onIceCandidate: Observable<RTCIceCandidateInit>
   onConnectionState: Observable<ConnectionState>
   close(): void
   requestKeyFrame?: () => void
-  sendAudioPacket?: (rtp: RtpPacket|Buffer) => void
-  addIceCandidate(candidate: Partial<RTCIceCandidate>): Promise<void>
-  close(): void
+  sendAudioPacket?: (rtp: RtpPacket | Buffer) => void
 }
 
 export class WeriftPeerConnection
@@ -167,9 +171,11 @@ export class WeriftPeerConnection
   }
 
   addIceCandidate(candidate: RTCIceCandidateInit) {
-    return this.pc.addIceCandidate(new RTCIceCandidate({
-        ...candidate as any,
-    }))
+    return this.pc.addIceCandidate(
+      new RTCIceCandidate({
+        ...(candidate as any),
+      })
+    )
   }
 
   requestKeyFrame() {
