@@ -231,6 +231,7 @@ export class RingBaseApi extends Subscribed {
         credentials,
         logLevel: 'NONE',
         senderId: '876313859327', // for Ring android app.  703521446232 for ring-site
+        heartbeatIntervalMs: 15 * 60 * 1000,
       }),
       devicesById: { [id: number]: RingCamera | RingIntercom | undefined } = {},
       sendToDevice = (id: number, notification: PushNotification) => {
