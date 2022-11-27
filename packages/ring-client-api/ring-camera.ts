@@ -167,8 +167,11 @@ export class RingCamera extends Subscribed {
   hasSiren
 
   onRequestUpdate = new Subject()
-  onNewNotification = new Subject<PushNotificationDing>()
-  onActiveNotifications = new BehaviorSubject<PushNotificationDing[]>([])
+  onRequestActiveDings = new Subject()
+  onNewNotification = new Subject<PushNotification>()
+  onActiveNotifications = new BehaviorSubject<PushNotification[]>([])
+  onNewDing = new Subject<ActiveDing>()
+  onActiveDings = new BehaviorSubject<ActiveDing[]>([])
   onDoorbellPressed = this.onNewNotification.pipe(
     filter(
       (notification) => notification.action === PushNotificationAction.Ding
@@ -189,6 +192,12 @@ export class RingCamera extends Subscribed {
     filter((currentlyDetected) => currentlyDetected),
     mapTo(null), // no value needed, event is what matters
     share()
+  )
+  onMotionDetectedPolling = this.onActiveDings.pipe(
+    map((dings) => dings.some((ding) => ding.motion || ding.kind === 'motion')),
+    distinctUntilChanged(),
+    publishReplay(1),
+    refCount()
   )
   onBatteryLevel
   onInHomeDoorbellStatus
@@ -260,6 +269,10 @@ export class RingCamera extends Subscribed {
 
   get name() {
     return this.data.description
+  }
+
+  get activeDings() {
+    return this.onActiveDings.getValue()
   }
 
   get activeNotifications() {
@@ -444,6 +457,21 @@ export class RingCamera extends Subscribed {
       otherDings = allActiveDings.filter(({ ding }) => ding.id !== idToRemove)
 
     this.onActiveNotifications.next(otherDings)
+  }
+
+  processActiveDing(ding: ActiveDing) {
+    const activeDings = this.activeDings,
+      dingId = ding.id_str
+
+    this.onActiveDings.next(
+      activeDings.filter((d) => d.id_str !== dingId).concat([ding])
+    )
+    this.onNewDing.next(ding)
+
+    setTimeout(() => {
+      this.removeDingById(ding.id)
+      this.expiredDingIds = this.expiredDingIds.filter((id) => id !== dingId)
+    }, 65 * 1000) // dings last ~1 minute
   }
 
   processPushNotification(notification: PushNotification) {
