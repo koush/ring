@@ -17,7 +17,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@eneris/push-receiver": "^3.1.4",
+    "@eneris/push-receiver": "../push-receiver",
     "@homebridge/camera-utils": "^2.2.0",
     "werift": "0.18.1",
     "@types/socket.io-client": "1.4.36",
@@ -28,7 +28,9 @@
     "socket.io-client": "^2.5.0",
     "systeminformation": "^5.17.10",
     "uuid": "^9.0.0",
-    "ws": "^8.12.1"
+    "ws": "^8.12.1",
+    "sdp": "^3.0.3",
+    "stun": "^2.1.0"
   },
   "devDependencies": {
     "@types/debug": "4.1.7",
