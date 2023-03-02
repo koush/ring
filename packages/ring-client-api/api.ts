@@ -31,6 +31,7 @@ import { Subscribed } from './subscribed'
 import PushReceiver from '@eneris/push-receiver'
 import { RingIntercom } from './ring-intercom'
 import { StreamingConnectionOptions } from './streaming/streaming-connection-base'
+import { RingIntercom } from './ring-intercom'
 
 export interface RingApiOptions extends SessionOptions {
   locationIds?: string[]
@@ -149,9 +150,9 @@ export class RingBaseApi extends Subscribed {
   }
 
   private listenForDeviceUpdates(
-    cameras: RingCamera[], 
-    chimes: RingChime[, 
-      intercoms: RingIntercom[]
+    cameras: RingCamera[],
+    chimes: RingChime[],
+    intercoms: RingIntercom[]
   ) {
     const { cameraStatusPollingSeconds, cameraDingsPollingSeconds } = this.options
     if (!cameraStatusPollingSeconds) {

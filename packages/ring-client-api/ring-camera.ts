@@ -19,7 +19,6 @@ import {
 import { FfmpegOptions } from './ffmpeg-options'
 import { clientApi, deviceApi, RingRestClient } from './rest-client'
 import {
-  ActiveDing,
   CameraData,
   CameraDeviceSettingsData,
   CameraEventOptions,
@@ -29,6 +28,7 @@ import {
   HistoryOptions,
   LiveCallResponse,
   PeriodicFootageResponse,
+  PushNotificationAction,
   PushNotification,
   PushNotificationDing,
   RingCameraModel,
@@ -36,9 +36,6 @@ import {
   OnvifCameraData,
   RingCameraKind,
   ActiveDing,
-  PushNotificationAction,
-  RingCameraModel,
-  VideoSearchResponse,
 } from './ring-types'
 import { SipOptions } from './sip-call'
 import { SipSession } from './sip-session'
@@ -168,10 +165,10 @@ export class RingCamera extends Subscribed {
 
   onRequestUpdate = new Subject()
   onRequestActiveDings = new Subject()
-  onNewNotification = new Subject<PushNotification>()
-  onActiveNotifications = new BehaviorSubject<PushNotification[]>([])
   onNewDing = new Subject<ActiveDing>()
   onActiveDings = new BehaviorSubject<ActiveDing[]>([])
+  onNewNotification = new Subject<PushNotificationDing>()
+  onActiveNotifications = new BehaviorSubject<PushNotificationDing[]>([])
   onDoorbellPressed = this.onNewNotification.pipe(
     filter(
       (notification) => notification.action === PushNotificationAction.Ding
