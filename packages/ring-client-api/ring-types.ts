@@ -1200,3 +1200,30 @@ export interface LocationModeSharing {
 export function isWebSocketSupportedAsset({ kind }: { kind: AssetKind }) {
   return kind.startsWith('base_station') || kind.startsWith('beams_bridge')
 }
+
+export interface ActiveDing {
+  id: number
+  id_str: string
+  state: DingState
+  protocol: 'sip'
+  doorbot_id: number
+  doorbot_description: string
+  device_kind: RingCameraKind
+  motion: boolean
+  snapshot_url: string
+  kind: DingKind
+  sip_server_ip: string
+  sip_server_port: number
+  sip_server_tls: boolean
+  sip_session_id: string
+  sip_from: string
+  sip_to: string
+  audio_jitter_buffer_ms: number
+  video_jitter_buffer_ms: number
+  sip_endpoints: null
+  expires_in: number
+  now: number
+  optimization_level: number
+  sip_token: string
+  sip_ding_id: string
+}
