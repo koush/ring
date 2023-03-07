@@ -29,6 +29,7 @@ import { setFfmpegPath } from './ffmpeg'
 import { Subscribed } from './subscribed'
 import PushReceiver from '@eneris/push-receiver'
 import { RingIntercom } from './ring-intercom'
+import { StreamingConnectionOptions } from './streaming/streaming-connection-base'
 
 export interface RingApiOptions extends SessionOptions {
   locationIds?: string[]
@@ -43,11 +44,14 @@ export interface RingApiOptions extends SessionOptions {
   }
 }
 
-export class RingApi extends Subscribed {
+export class RingBaseApi extends Subscribed {
   public readonly restClient
   public readonly onRefreshTokenUpdated
 
-  constructor(public readonly options: RingApiOptions & RefreshTokenAuth) {
+  constructor(
+    public readonly options: RingApiOptions & RefreshTokenAuth,
+    public readonly streamingConnectionOptions: StreamingConnectionOptions
+  ) {
     super()
 
     this.restClient = new RingRestClient(this.options)
@@ -325,7 +329,8 @@ export class RingApi extends Subscribed {
               authorizedDoorbots.includes(data as CameraData) ||
               data.kind.startsWith('doorbell'),
             this.restClient,
-            this.options.avoidSnapshotBatteryDrain || false
+            this.options.avoidSnapshotBatteryDrain || false,
+            this.streamingConnectionOptions
           )
       ),
       ringChimes = chimes.map((data) => new RingChime(data, this.restClient)),
@@ -410,5 +415,17 @@ export class RingApi extends Subscribed {
       })
 
     this.restClient.clearTimeouts()
+  }
+}
+
+export class RingApi extends RingBaseApi {
+  constructor(public readonly options: RingApiOptions & RefreshTokenAuth) {
+    super(options, {
+      // calling as global.require prevents webpack from picking it up.
+      createPeerConnection: () =>
+        new (global.require(
+          './streaming/werift-peer-connection'
+        ).WeriftPeerConnection)(),
+    })
   }
 }
