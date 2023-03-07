@@ -147,7 +147,7 @@ export class RingEdgeConnection extends StreamingConnectionBase {
     this.onOfferSent.next()
   }
 
-  private sessionId: string | null = null
+  public sessionId: string | null = null
   protected async handleMessage(message: IncomingMessage) {
     if (message.body.doorbot_id !== this.camera.id) {
       // ignore messages for other cameras
