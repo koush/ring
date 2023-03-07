@@ -7,6 +7,7 @@ import {
 } from './rest-client'
 import { Location } from './location'
 import {
+  ActiveDing,
   BaseStation,
   BeamBridge,
   CameraData,
@@ -34,6 +35,7 @@ import { StreamingConnectionOptions } from './streaming/streaming-connection-bas
 export interface RingApiOptions extends SessionOptions {
   locationIds?: string[]
   cameraStatusPollingSeconds?: number
+  cameraDingsPollingSeconds?: number
   locationModePollingSeconds?: number
   avoidSnapshotBatteryDrain?: boolean
   debug?: boolean
@@ -140,12 +142,18 @@ export class RingBaseApi extends Subscribed {
     }
   }
 
+  fetchActiveDings() {
+    return this.restClient.request<ActiveDing[]>({
+      url: clientApi('dings/active'),
+    })
+  }
+
   private listenForDeviceUpdates(
     cameras: RingCamera[],
     chimes: RingChime[],
     intercoms: RingIntercom[]
   ) {
-    const { cameraStatusPollingSeconds } = this.options
+    const { cameraStatusPollingSeconds, cameraDingsPollingSeconds } = this.options
     if (!cameraStatusPollingSeconds) {
       return
     }
@@ -153,9 +161,18 @@ export class RingBaseApi extends Subscribed {
       onDeviceRequestUpdate = merge(
         ...devices.map((device) => device.onRequestUpdate)
       ),
+      onCamerasRequestActiveDings = merge(
+        ...cameras.map((camera) => camera.onRequestActiveDings)
+      ),
       onUpdateReceived = new Subject(),
+      onActiveDingsReceived = new Subject(),
       onPollForStatusUpdate = cameraStatusPollingSeconds
         ? onUpdateReceived.pipe(debounceTime(cameraStatusPollingSeconds * 1000))
+        : EMPTY,
+      onPollForActiveDings = cameraDingsPollingSeconds
+        ? onActiveDingsReceived.pipe(
+            debounceTime(cameraDingsPollingSeconds * 1000)
+          )
         : EMPTY,
       camerasById = cameras.reduce((byId, camera) => {
         byId[camera.id] = camera
@@ -212,6 +229,30 @@ export class RingBaseApi extends Subscribed {
 
     if (cameraStatusPollingSeconds) {
       onUpdateReceived.next(null) // kick off polling
+    }
+
+    this.addSubscriptions(
+      merge(onCamerasRequestActiveDings, onPollForActiveDings).subscribe(
+        async () => {
+          const activeDings = await this.fetchActiveDings().catch(() => null)
+          onActiveDingsReceived.next(null)
+
+          if (!activeDings || !activeDings.length) {
+            return
+          }
+
+          activeDings.forEach((activeDing) => {
+            const camera = camerasById[activeDing.doorbot_id]
+            if (camera) {
+              camera.processActiveDing(activeDing)
+            }
+          })
+        }
+      )
+    )
+
+    if (cameras.length && cameraDingsPollingSeconds) {
+      onActiveDingsReceived.next(null) // kick off polling
     }
   }
 
