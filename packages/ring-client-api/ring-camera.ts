@@ -472,7 +472,9 @@ export class RingCamera extends Subscribed {
 
   private removeDingById(idToRemove: string) {
     const allActiveDings = this.activeNotifications,
-      otherDings = allActiveDings.filter(({ ding }) => ding.id !== idToRemove)
+      otherDings = allActiveDings.filter(
+        ({ ding }) => ding.id.toString() !== idToRemove
+      )
 
     this.onActiveNotifications.next(otherDings)
   }
@@ -487,7 +489,7 @@ export class RingCamera extends Subscribed {
     this.onNewDing.next(ding)
 
     setTimeout(() => {
-      this.removeDingById(ding.id)
+      this.removeDingById(ding.id.toString())
       this.expiredDingIds = this.expiredDingIds.filter((id) => id !== dingId)
     }, 65 * 1000) // dings last ~1 minute
   }
