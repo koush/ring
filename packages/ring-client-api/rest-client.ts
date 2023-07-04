@@ -168,6 +168,9 @@ export class RingRestClient {
           this.timeouts.push(timeout)
         })
         .catch(() => {
+          if (this._authPromise === authPromise) {
+            this.clearPreviousAuth()
+          }
           // ignore these errors here, they should be handled by the function making a rest request
         })
     }

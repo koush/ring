@@ -185,6 +185,10 @@ export class RingCamera extends Subscribed {
     ),
     share()
   )
+  onDoorbellPressedPolling = this.onNewDing.pipe(
+    filter((ding) => ding.kind === 'ding'),
+    share()
+  )
   onMotionDetected = this.onActiveNotifications.pipe(
     map((notifications) =>
       notifications.some(
