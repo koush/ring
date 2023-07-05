@@ -270,11 +270,14 @@ export class RingRestClient {
       }
     } catch (requestError: any) {
       if (grantData.refresh_token) {
+        // koush 2023/07/05: unsure why the refresh token is being cleared here.
+        // throw an error and let the callee handle it.
         // failed request with refresh token
-        this.refreshToken = undefined
-        this.authConfig = undefined
-        logError(requestError)
-        return this.getAuth()
+        // this.refreshToken = undefined
+        // this.authConfig = undefined
+        // logError(requestError)
+        // return this.getAuth()
+        throw requestError
       }
 
       const response = requestError.response || {},
