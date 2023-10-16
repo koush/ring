@@ -17,7 +17,6 @@ export abstract class StreamingConnectionBase extends Subscribed {
   readonly onMessage = new ReplaySubject<{ method: string }>()
   readonly onWsOpen
   protected readonly pc
-  public sessionId: string | null = null
 
   readonly onAudioRtp
   readonly onVideoRtp

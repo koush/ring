@@ -5,10 +5,10 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "dotenv": "16.1.4",
+    "dotenv": "16.3.1",
     "eslint-config-shared": "*",
     "express": "4.18.2",
-    "ring-client-api": "11.7.7",
+    "ring-client-api": "11.8.1",
     "tsconfig": "*"
   },
   "version": null
