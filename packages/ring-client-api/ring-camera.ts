@@ -388,9 +388,12 @@ export class RingCamera extends Subscribed {
       url: this.doorbotUrl('siren_' + (on ? 'on' : 'off')),
     })
 
-    const seconds = on ? 1 : 0;
+    const seconds = on ? 1 : 0
 
-    this.updateData({ ...this.data, siren_status: { seconds_remaining: seconds } })
+    this.updateData({
+      ...this.data,
+      siren_status: { seconds_remaining: seconds },
+    })
 
     return true
   }
