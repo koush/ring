@@ -16,6 +16,7 @@ import {
   OnvifCameraData,
   ProfileResponse,
   PushNotification,
+  PushNotificationAction,
   RingDeviceType,
   ThirdPartyGarageDoorOpener,
   UnknownDevice,
@@ -159,7 +160,7 @@ export class RingBaseApi extends Subscribed {
     chimes: RingChime[],
     intercoms: RingIntercom[]
   ) {
-    const { cameraStatusPollingSeconds, cameraDingsPollingSeconds } = this.options
+    const { cameraStatusPollingSeconds } = this.options
     if (!cameraStatusPollingSeconds) {
       return
     }
@@ -167,18 +168,9 @@ export class RingBaseApi extends Subscribed {
       onDeviceRequestUpdate = merge(
         ...devices.map((device) => device.onRequestUpdate)
       ),
-      onCamerasRequestActiveDings = merge(
-        ...cameras.map((camera) => camera.onRequestActiveDings)
-      ),
       onUpdateReceived = new Subject(),
-      onActiveDingsReceived = new Subject(),
       onPollForStatusUpdate = cameraStatusPollingSeconds
         ? onUpdateReceived.pipe(debounceTime(cameraStatusPollingSeconds * 1000))
-        : EMPTY,
-      onPollForActiveDings = cameraDingsPollingSeconds
-        ? onActiveDingsReceived.pipe(
-            debounceTime(cameraDingsPollingSeconds * 1000)
-          )
         : EMPTY,
       camerasById = cameras.reduce((byId, camera) => {
         byId[camera.id] = camera
@@ -236,30 +228,6 @@ export class RingBaseApi extends Subscribed {
     if (cameraStatusPollingSeconds) {
       onUpdateReceived.next(null) // kick off polling
     }
-
-    this.addSubscriptions(
-      merge(onCamerasRequestActiveDings, onPollForActiveDings).subscribe(
-        async () => {
-          const activeDings = await this.fetchActiveDings().catch(() => null)
-          onActiveDingsReceived.next(null)
-
-          if (!activeDings || !activeDings.length) {
-            return
-          }
-
-          activeDings.forEach((activeDing) => {
-            const camera = camerasById[activeDing.doorbot_id]
-            if (camera) {
-              camera.processActiveDing(activeDing)
-            }
-          })
-        }
-      )
-    )
-
-    if (cameras.length && cameraDingsPollingSeconds) {
-      onActiveDingsReceived.next(null) // kick off polling
-    }
   }
 
   private async registerPushReceiver(
@@ -275,7 +243,7 @@ export class RingBaseApi extends Subscribed {
           messagingSenderId: '876313859327', // for Ring android app.  703521446232 for ring-site
           appId: '1:876313859327:android:e10ec6ddb3c81f39',
         },
-        credentials,
+        credentials: credentials?.config ? credentials : undefined,
         debug: false,
         heartbeatIntervalMs: 5 * 60 * 1000,
       }),
@@ -313,6 +281,7 @@ export class RingBaseApi extends Subscribed {
               device: {
                 metadata: {
                   ...this.restClient.baseSessionMetadata,
+                  pn_dict_version: '2.0.0',
                   pn_service: 'fcm',
                 },
                 os: 'android',
@@ -344,18 +313,38 @@ export class RingBaseApi extends Subscribed {
         return
       }
 
-      const dataJson = message.data?.gcmData as string
-
       try {
-        const notification = JSONbig({ storeAsString: true }).parse(
-          dataJson
-        ) as PushNotification
+        const messageData = {} as any
+        // Each message field is a JSON string, so we need to parse them each individually
+        for (const p in message.data) {
+          try {
+            // If it's a JSON string, parse it into an object
+            messageData[p] = JSONbig({ storeAsString: true }).parse(
+              message.data[p] as string
+            )
+          } catch {
+            // Otherwise just assign the value directly
+            messageData[p] = message.data[p]
+          }
+        }
 
-        if ('ding' in notification) {
-          sendToDevice(notification.ding.doorbot_id, notification)
-        } else if ('alarm_meta' in notification) {
-          // Alarm notification, such as intercom unlocked
-          sendToDevice(notification.alarm_meta.device_zid, notification)
+        const notification = messageData as PushNotification,
+          deviceId = notification.data?.device?.id
+
+        if (deviceId) {
+          sendToDevice(deviceId, notification)
+        }
+
+        const eventCategory = notification.android_config.category
+
+        if (
+          eventCategory !== PushNotificationAction.Ding &&
+          eventCategory !== PushNotificationAction.Motion
+        ) {
+          logInfo(
+            'Received push notification with unknown category: ' + eventCategory
+          )
+          logInfo(JSON.stringify(message))
         }
       } catch (e) {
         logError(e)
