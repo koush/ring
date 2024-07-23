@@ -235,6 +235,7 @@ export class RingBaseApi extends Subscribed {
     intercoms: RingIntercom[]
   ) {
     const credentials =
+        this.restClient._internalOnly_pushNotificationCredentials?.config &&
         this.restClient._internalOnly_pushNotificationCredentials,
       pushReceiver = new PushReceiver({
         firebase: {
@@ -243,7 +244,7 @@ export class RingBaseApi extends Subscribed {
           messagingSenderId: '876313859327', // for Ring android app.  703521446232 for ring-site
           appId: '1:876313859327:android:e10ec6ddb3c81f39',
         },
-        credentials: credentials?.config ? credentials : undefined,
+        credentials,
         debug: false,
         heartbeatIntervalMs: 5 * 60 * 1000,
       }),
@@ -351,8 +352,12 @@ export class RingBaseApi extends Subscribed {
       }
     })
 
-    // If we already have credentials, use them immediately
-    if (credentials) {
+    // If we already have credentials and they haven't been changed during registration, use them immediately
+    if (
+      credentials &&
+      credentials?.fcm?.token ===
+        this.restClient._internalOnly_pushNotificationCredentials?.fcm?.token
+    ) {
       onPushNotificationToken.next(credentials.fcm.token)
     }
   }
