@@ -20,23 +20,23 @@ export class RingIntercom {
 
   constructor(
     private initialData: IntercomHandsetAudioData,
-    private restClient: RingRestClient
+    private restClient: RingRestClient,
   ) {
     this.id = this.initialData.id
     this.deviceType = this.initialData.kind
     this.onData = new BehaviorSubject<IntercomHandsetAudioData>(
-      this.initialData
+      this.initialData,
     )
 
     this.onBatteryLevel = this.onData.pipe(
       map((data) => getBatteryLevel(data)),
-      distinctUntilChanged()
+      distinctUntilChanged(),
     )
 
     if (!initialData.subscribed) {
       this.subscribeToDingEvents().catch((e) => {
         logError(
-          'Failed to subscribe ' + initialData.description + ' to ding events'
+          'Failed to subscribe ' + initialData.description + ' to ding events',
         )
         logError(e)
       })
@@ -104,11 +104,15 @@ export class RingIntercom {
   }
 
   processPushNotification(notification: PushNotification) {
-    if (notification.android_config.category === PushNotificationAction.Ding) {
+    if (
+      'android_config' in notification &&
+      notification.android_config.category ===
+        PushNotificationAction.IntercomDing
+    ) {
       this.onDing.next()
     } else if (
-      notification.android_config.category ===
-      PushNotificationAction.IntercomUnlock
+      'gcmData' in notification.data &&
+      notification.data.gcmData.action === PushNotificationAction.IntercomUnlock
     ) {
       this.onUnlocked.next()
     }

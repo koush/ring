@@ -41,7 +41,7 @@ export class StreamingSession extends Subscribed {
 
   constructor(
     private readonly camera: RingCamera,
-    private connection: WebrtcConnection
+    public connection: WebrtcConnection
   ) {
     super()
 

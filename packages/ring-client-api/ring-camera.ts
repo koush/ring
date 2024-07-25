@@ -31,13 +31,13 @@ import {
   HistoryOptions,
   OnvifCameraData,
   PeriodicFootageResponse,
-  PushNotification,
   PushNotificationAction,
   PushNotificationDingV2,
   RingCameraKind,
   RingCameraModel,
   SocketTicketResponse,
   VideoSearchResponse,
+  PushNotification,
 } from './ring-types'
 
 import { SipOptions } from './sip-call'
@@ -463,7 +463,11 @@ export class RingCamera extends Subscribed {
   }
 
   processPushNotification(notification: PushNotification) {
-    if (!('ding' in notification.data?.event)) {
+    if (
+      !('android_config' in notification) ||
+      !('event' in notification.data) ||
+      !('ding' in notification.data?.event)
+    ) {
       // only process ding/motion notifications
       return
     }

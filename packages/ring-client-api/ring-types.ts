@@ -22,6 +22,7 @@ export enum RingDeviceType {
   CoAlarm = 'alarm.co',
   SmokeCoListener = 'listener.smoke-co',
   MultiLevelSwitch = 'switch.multilevel',
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   Fan = 'switch.multilevel',
   MultiLevelBulb = 'switch.multilevel.bulb',
   Switch = 'switch',
@@ -36,15 +37,19 @@ export enum RingDeviceType {
   Thermostat = 'temperature-control.thermostat',
   Sensor = 'sensor',
   RingNetAdapter = 'adapter.ringnet',
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   CodeVault = 'access-code.vault',
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   SecurityAccessCode = 'access-code',
   ZWaveAdapter = 'adapter.zwave',
+  // eslint-disable-next-line @typescript-eslint/no-duplicate-enum-values
   ZWaveExtender = 'range-extender.zwave',
   PanicButton = 'security-panic',
   UnknownZWave = 'unknown.zwave',
   OnvifCamera = 'onvif_camera',
   ThirdPartyGarageDoorOpener = 'third_party_gdo',
   IntercomHandsetAudio = 'intercom_handset_audio',
+  WaterValve = 'valve.water',
 }
 
 // eslint-disable-next-line no-shadow
@@ -66,6 +71,7 @@ export enum RingDeviceCategory {
   Keypads = 33,
   Sirens = 34,
   PanicButtons = 35,
+  WaterValves = 37,
 }
 
 // eslint-disable-next-line no-shadow
@@ -75,6 +81,7 @@ export enum RingCameraKind {
   doorbell_v3 = 'doorbell_v3',
   doorbell_v4 = 'doorbell_v4',
   doorbell_v5 = 'doorbell_v5',
+  doorbell_oyster = 'doorbell_oyster', // used for the Ring Video Doorbell 4
   doorbell_portal = 'doorbell_portal',
   doorbell_scallop = 'doorbell_scallop',
   doorbell_scallop_lite = 'doorbell_scallop_lite',
@@ -98,16 +105,19 @@ export enum RingCameraKind {
   cocoa_camera = 'cocoa_camera', // appears to be used for all next gen stickup cams (wired/battery/solar)
   cocoa_doorbell = 'cocoa_doorbell',
   cocoa_floodlight = 'cocoa_floodlight',
+  cocoa_spotlight = 'cocoa_spotlight', // used for the Spotlight Cam Plus (potentially other Spotlight models)
   stickup_cam_mini = 'stickup_cam_mini',
   onvif_camera = 'onvif_camera',
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const RingCameraModel: { readonly [P in RingCameraKind]: string } = {
   doorbot: 'Doorbell',
   doorbell: 'Doorbell',
   doorbell_v3: 'Doorbell',
   doorbell_v4: 'Doorbell 2',
   doorbell_v5: 'Doorbell 2',
+  doorbell_oyster: 'Doorbell 4',
   doorbell_portal: 'Door View Cam',
   doorbell_scallop: 'Doorbell 3 Plus',
   doorbell_scallop_lite: 'Doorbell 3',
@@ -131,6 +141,7 @@ export const RingCameraModel: { readonly [P in RingCameraKind]: string } = {
   cocoa_camera: 'Stick Up Cam',
   cocoa_doorbell: 'Doorbell Gen 2',
   cocoa_floodlight: 'Floodlight Cam Plus',
+  cocoa_spotlight: 'Spotlight Cam Plus',
   stickup_cam_mini: 'Indoor Cam',
   onvif_camera: 'ONVIF Camera',
 }
@@ -259,6 +270,7 @@ export interface RingDeviceData {
   motionSensorEnabled?: boolean
   // security-keypad
   brightness?: number // 0 - 1
+  valveState?: 'open' | 'closed'
 }
 
 export const deviceTypesWithVolume = [
@@ -305,6 +317,7 @@ export interface BeamBridge {
 }
 
 export type ChimeKind = 'chime' | 'chime_pro' | 'chime_v2' | 'chime_pro_v2'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const ChimeModel: { readonly [P in ChimeKind]: string } = {
   chime: 'Chime',
   chime_pro: 'Chime Pro',
@@ -381,7 +394,7 @@ export interface RingtoneOptions {
       url: string
       checksum: string
       available: string
-    }
+    },
   ]
 }
 
@@ -554,6 +567,7 @@ export interface BaseCameraData {
     rssi_category: 'good' | string
     battery_voltage_category: 'very_good' | string
     second_battery_voltage_category: 'unknown' | string
+    second_battery_percentage?: number // 0 - 100
     second_battery_percentage_category: 'unknown' | string
     battery_save: boolean
     firmware_version_status: 'Up to Date'
@@ -1001,8 +1015,12 @@ export enum NotificationDetectionType {
 export enum PushNotificationAction {
   Ding = 'com.ring.pn.live-event.ding',
   Motion = 'com.ring.pn.live-event.motion',
-  IntercomUnlock = 'com.ring.pn.live-event.intercom',
-  LowBattery = 'com.ring.push.LOW_BATTERY_ALERT',
+  IntercomDing = 'com.ring.pn.live-event.intercom',
+  IntercomUnlock = 'com.ring.push.INTERCOM_UNLOCK_FROM_APP',
+  AlarmModeNone = 'com.ring.push.HANDLE_NEW_SECURITY_PANEL_MODE_NONE_NOTICE',
+  AlarmModeSome = 'com.ring.push.HANDLE_NEW_SECURITY_PANEL_MODE_SOME_NOTICE',
+  AlarmSoundSiren = 'com.ring.push.HANDLE_NEW_USER_SOUND_SIREN',
+  AlarmSilenceSiren = 'com.ring.push.HANDLE_NEW_NON_ALARM_SIREN_SILENCED',
 }
 
 export interface PushNotificationDingV2 {
@@ -1024,7 +1042,7 @@ export interface PushNotificationDingV2 {
     device: {
       e2ee_enabled: boolean
       id: number
-      kind: RingCameraKind
+      kind: RingCameraKind | RingDeviceType.IntercomHandsetAudio
       name: string
     }
     event: {
@@ -1032,7 +1050,7 @@ export interface PushNotificationDingV2 {
         id: string
         created_at: string
         subtype: 'other_motion' | 'motion' | 'ding' | 'human' | string
-        detection_type: NotificationDetectionType
+        detection_type?: NotificationDetectionType
       }
       eventito: {
         type: NotificationDetectionType
@@ -1056,7 +1074,7 @@ export interface PushNotificationDingV2 {
   }
 }
 
-export interface PushNotificationAlarm {
+interface PushNotificationAlarm {
   aps: {
     alert: string
   }
@@ -1067,21 +1085,33 @@ export interface PushNotificationAlarm {
   }
 }
 
-export interface PushNotificationLowBattery {
+export interface PushNotificationAlarmV2 {
   data: {
-    device_name: string
-    doorbot_id: number
-    battery_level: number // 29
-    device_kind: RingDeviceType
-    timestamp_epoch_ms: number
+    gcmData: PushNotificationAlarm
   }
-  aps: {
-    title: string // 'Battery at 29% - ABC needs charging.'
-  }
-  action: PushNotificationAction.LowBattery
 }
 
-export type PushNotification = PushNotificationDingV2
+interface PushNotificationIntercomUnlock {
+  aps: {
+    alert: string
+  }
+  action: PushNotificationAction.IntercomUnlock
+  alarm_meta: {
+    device_zid: number
+    location_id: string
+  }
+}
+
+export interface PushNotificationIntercomUnlockV2 {
+  data: {
+    gcmData: PushNotificationIntercomUnlock
+  }
+}
+
+export type PushNotification =
+  | PushNotificationDingV2
+  | PushNotificationAlarmV2
+  | PushNotificationIntercomUnlockV2
 
 export interface SocketTicketResponse {
   ticket: string
