@@ -269,10 +269,16 @@ export class RingBaseApi extends Subscribed {
     const credentials =
         this.restClient._internalOnly_pushNotificationCredentials,
       pushReceiver = new PushReceiver({
+        firebase: {
+          apiKey: 'AIzaSyCv-hdFBmmdBBJadNy-TFwB-xN_H5m3Bk8',
+          projectId: 'ring-17770',
+          messagingSenderId: '876313859327', // for Ring android app.  703521446232 for ring-site
+          appId: '1:876313859327:android:e10ec6ddb3c81f39',
+        },
         credentials,
-        logLevel: 'NONE',
-        senderId: '876313859327', // for Ring android app.  703521446232 for ring-site
-        heartbeatIntervalMs: 15 * 60 * 1000,
+        debug: false,
+        // seems gone from upstream?
+        // heartbeatIntervalMs: 15 * 60 * 1000,
       }),
       devicesById: { [id: number]: RingCamera | RingIntercom | undefined } = {},
       sendToDevice = (id: number, notification: PushNotification) => {
