@@ -277,8 +277,7 @@ export class RingBaseApi extends Subscribed {
         },
         credentials,
         debug: false,
-        // seems gone from upstream?
-        // heartbeatIntervalMs: 15 * 60 * 1000,
+        heartbeatIntervalMs: 5 * 60 * 1000,
       }),
       devicesById: { [id: number]: RingCamera | RingIntercom | undefined } = {},
       sendToDevice = (id: number, notification: PushNotification) => {
