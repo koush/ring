@@ -42,7 +42,6 @@ import { StreamingConnectionOptions } from './streaming/streaming-connection-bas
 export interface RingApiOptions extends SessionOptions {
   locationIds?: string[]
   cameraStatusPollingSeconds?: number
-  cameraDingsPollingSeconds?: number
   locationModePollingSeconds?: number
   avoidSnapshotBatteryDrain?: boolean
   debug?: boolean
