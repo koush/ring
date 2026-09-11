@@ -39,6 +39,11 @@ interface SessionStartedMessage {
   body: SessionBody
 }
 
+interface PingMessage {
+  method: 'ping'
+  body: SessionBody
+}
+
 interface PongMessage {
   method: 'pong'
   body: SessionBody
@@ -75,6 +80,7 @@ type IncomingMessage =
   | IceCandidateMessage
   | SessionCreatedMessage
   | SessionStartedMessage
+  | PingMessage
   | PongMessage
   | CloseMessage
   | NotificationMessage
@@ -181,6 +187,9 @@ export class WebrtcConnection extends StreamingConnectionBase {
           candidate: message.body.ice,
           sdpMLineIndex: message.body.mlineindex,
         })
+        return
+      case 'ping':
+        this.sendSessionMessage('pong')
         return
       case 'pong':
         return
