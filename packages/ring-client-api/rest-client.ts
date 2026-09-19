@@ -35,6 +35,8 @@ const defaultRequestOptions: RequestOptions = {
   deviceApiBaseUrl = 'https://api.ring.com/devices/v1/',
   commandsApiBaseUrl = 'https://api.ring.com/commands/v1/',
   appApiBaseUrl = 'https://app.ring.com/api/v1/',
+  locationInfoApiBaseUrl = 'https://api.ring.com/location_info/v3/',
+  deviceInfoApiBaseUrl = 'https://api.ring.com/device_info/v3/',
   apiVersion = 11
 
 export function clientApi(path: string) {
@@ -43,6 +45,16 @@ export function clientApi(path: string) {
 
 export function deviceApi(path: string) {
   return deviceApiBaseUrl + path
+}
+
+// Newer endpoints used by the Ring app.  Unlike `deviceApi`/`clientApi` these
+// include devices and locations which another account owns and has shared.
+export function locationInfoApi(path: string) {
+  return locationInfoApiBaseUrl + path
+}
+
+export function deviceInfoApi(path: string) {
+  return deviceInfoApiBaseUrl + path
 }
 
 export function commandsApi(path: string) {
