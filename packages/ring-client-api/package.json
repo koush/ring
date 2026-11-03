@@ -17,7 +17,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@eneris/push-receiver": "^4.2.0",
+    "@eneris/push-receiver": "^4.4.0",
     "@homebridge/camera-utils": "^2.2.6",
     "@peculiar/asn1-schema": "^2.3.8",
     "@peculiar/webcrypto": "^1.4.3",
